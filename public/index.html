@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<!--
+  2026 马年祝福留言墙
+  完成时间: 2025-12-31 12:00-24:00 GMT+8
+  作者: @xiaomo
+  状态: 已完成并部署
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="author" content="@xiaomo">
+  <title>🐴 2026 马年祝福墙 - 新春快乐</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+  <!-- 浏览器兼容性检测和Polyfill -->
+  <script>
+    // 检测浏览器兼容性
+    (function() {
+      'use strict';
+      
+      // 检测必要的API支持
+      var features = {
+        fetch: typeof fetch !== 'undefined',
+        promise: typeof Promise !== 'undefined',
+        canvas: !!document.createElement('canvas').getContext,
+        requestAnimationFrame: typeof requestAnimationFrame !== 'undefined'
+      };
+      
+      // 如果不支持fetch，加载polyfill
+      if (!features.fetch) {
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/whatwg-fetch@3.6.2/dist/fetch.umd.js';
+        document.head.appendChild(script);
+      }
+      
+      // 如果不支持Promise，加载polyfill
+      if (!features.promise) {
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/es6-promise@4.2.8/dist/es6-promise.auto.min.js';
+        document.head.appendChild(script);
+      }
+      
+      // 如果不支持requestAnimationFrame，添加polyfill
+      if (!features.requestAnimationFrame) {
+        var lastTime = 0;
+        var vendors = ['webkit', 'moz', 'ms', 'o'];
+        for (var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+          window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+          window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] || 
+                                        window[vendors[x] + 'CancelRequestAnimationFrame'];
+        }
+        if (!window.requestAnimationFrame) {
+          window.requestAnimationFrame = function(callback) {
+            var currTime = new Date().getTime();
+            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+            var id = window.setTimeout(function() { callback(currTime + timeToCall); }, timeToCall);
+            lastTime = currTime + timeToCall;
+            return id;
+          };
+        }
+        if (!window.cancelAnimationFrame) {
+          window.cancelAnimationFrame = function(id) { clearTimeout(id); };
+        }
+      }
+      
+      // 检测移动设备
+      window.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      window.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      window.isAndroid = /Android/.test(navigator.userAgent);
+      
+      // 检测触摸支持
+      window.hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    })();
+  </script>
+</head>
+<body>
+  <!-- 背景层 -->
+  <canvas id="bgCanvas"></canvas>
+  <canvas id="fwCanvas"></canvas>
+  <div class="lanterns">
+    <div class="lantern l1">🏮</div>
+    <div class="lantern l2">🏮</div>
+    <div class="lantern l3">🏮</div>
+  </div>
+  <div class="falling-items" id="fallingItems"></div>
+  
+  <!-- 鼠标跟随的马 -->
+  <div class="horse-follower" id="horseFollower">🐴</div>
+
+  <!-- 登录/注册模态框 -->
+  <div class="modal" id="authModal">
+    <div class="auth-card glass">
+      <div class="horse-anim">🐴</div>
+      <h1 class="gradient-text">2026 马年祝福墙</h1>
+      <p class="tagline">✨ 马到成功 · 万事如意 ✨</p>
+      <p class="gradient-text developer-text">
+        Developed by @Xiaomo 31 Dec 2025<br>
+        <a href="https://github.com/rabb1toxiaomo/hello2026" target="_blank">https://github.com/rabb1toxiaomo/hello2026</a>
+      </p>
+      
+      <!-- 登录表单 -->
+      <div id="loginForm" class="auth-form">
+        <div class="input-group">
+          <span class="input-icon">👤</span>
+          <input type="text" id="loginNick" placeholder="昵称" autocomplete="off">
+        </div>
+        <div class="input-group">
+          <span class="input-icon">🔒</span>
+          <input type="password" id="loginPwd" placeholder="密码">
+        </div>
+        <button class="btn-primary btn-glow" onclick="handleLogin()">
+          <span>登录</span>
+          <div class="btn-shine"></div>
+        </button>
+        <p class="auth-switch">还没有账号？<a onclick="showRegister()">立即注册</a></p>
+      </div>
+
+      <!-- 注册表单 -->
+      <div id="registerForm" class="auth-form" style="display:none">
+        <div class="tip-box">🎭 完全匿名，随便填写，保护隐私</div>
+        <div class="input-group">
+          <span class="input-icon">👤</span>
+          <input type="text" id="regNick" placeholder="昵称（将显示在祝福中）" autocomplete="off" required>
+        </div>
+        <div class="input-group">
+          <span class="input-icon">🔒</span>
+          <input type="password" id="regPwd" placeholder="密码" required>
+        </div>
+        <div class="input-row">
+          <div class="input-group" style="flex: 1;">
+            <span class="input-icon">⚧️</span>
+            <select id="regGender">
+              <option value="">性别（可选）</option>
+              <option value="male">👨 男</option>
+              <option value="female">👩 女</option>
+              <option value="other">🔒 保密</option>
+            </select>
+          </div>
+          <div class="input-group" style="flex: 1;">
+            <span class="input-icon">🎂</span>
+            <input type="number" id="regAge" placeholder="年龄（可选）" min="1" max="120">
+          </div>
+        </div>
+        <div class="input-group">
+          <span class="input-icon">💼</span>
+          <select id="regIndustry" required>
+            <option value="general">选择你的行业/专业</option>
+            <option value="tech">💻 程序员/IT</option>
+            <option value="design">🎨 设计师</option>
+            <option value="finance">💰 金融/财务</option>
+            <option value="student">📚 学生</option>
+            <option value="medical">🏥 医疗/健康</option>
+            <option value="teacher">👨‍🏫 教育/教师</option>
+          </select>
+        </div>
+        <button class="btn-primary btn-glow" onclick="handleRegister()">
+          <span>开始许愿 🚀</span>
+          <div class="btn-shine"></div>
+        </button>
+        <p class="auth-switch">已有账号？<a onclick="showLogin()">去登录</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主页面 -->
+  <div id="mainPage" class="main-page" style="display:none">
+    <!-- 顶部导航 -->
+    <nav class="top-nav glass">
+      <div class="nav-left">
+        <span class="user-avatar">🐴</span>
+        <span class="user-name" id="displayName">用户</span>
+        <span class="online-badge"><span class="pulse-dot"></span>在线</span>
+      </div>
+      <div class="nav-right">
+        <button class="nav-btn" id="logoutBtn" title="退出">🚪</button>
+      </div>
+    </nav>
+
+    <!-- 倒计时 -->
+    <section class="countdown-section">
+      <h2 class="section-title"><span class="title-icon">⏰</span> 距离 <span class="highlight">2026春节</span> 还有</h2>
+      <div class="countdown-display">
+        <div class="countdown-item">
+          <div class="countdown-value glass" id="countDays">00</div>
+          <div class="countdown-label">天</div>
+        </div>
+        <div class="countdown-sep">:</div>
+        <div class="countdown-item">
+          <div class="countdown-value glass" id="countHours">00</div>
+          <div class="countdown-label">时</div>
+        </div>
+        <div class="countdown-sep">:</div>
+        <div class="countdown-item">
+          <div class="countdown-value glass" id="countMinutes">00</div>
+          <div class="countdown-label">分</div>
+        </div>
+        <div class="countdown-sep">:</div>
+        <div class="countdown-item">
+          <div class="countdown-value glass" id="countSeconds">00</div>
+          <div class="countdown-label">秒</div>
+        </div>
+        <div class="postcard-btn-wrapper">
+          <button class="postcard-btn-large" id="postcardBtn" title="生成明信片">
+            <span class="postcard-icon">🎴</span>
+            <svg class="postcard-text-ring" viewBox="0 0 200 200">
+              <defs>
+                <path id="textPath" d="M 100,100 m -80,0 a 80,80 0 1,1 160,0 a 80,80 0 1,1 -160,0" />
+              </defs>
+              <text fill="rgba(255, 230, 109, 0.95)" font-size="14" font-weight="bold">
+                <textPath href="#textPath" startOffset="0%">
+                  快来获取你的专属明信片
+                </textPath>
+              </text>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 统计卡片 -->
+    <div class="stats-container">
+      <div class="stat-card glass">
+        <div class="stat-icon">👥</div>
+        <div class="stat-info">
+          <span class="stat-value" id="statOnline">0</span>
+          <span class="stat-label">在线</span>
+        </div>
+      </div>
+      <div class="stat-card glass">
+        <div class="stat-icon">💌</div>
+        <div class="stat-info">
+          <span class="stat-value" id="statMessages">0</span>
+          <span class="stat-label">祝福</span>
+        </div>
+      </div>
+      <div class="stat-card glass">
+        <div class="stat-icon">❤️</div>
+        <div class="stat-info">
+          <span class="stat-value" id="statLikes">0</span>
+          <span class="stat-label">点赞</span>
+        </div>
+      </div>
+      <div class="stat-card glass">
+        <div class="stat-icon">🎁</div>
+        <div class="stat-info">
+          <span class="stat-value" id="statGifts">0</span>
+          <span class="stat-label">礼物</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 祝福轮播 -->
+    <div class="blessing-carousel glass">
+      <div class="blessing-icon">🎊</div>
+      <p class="blessing-text" id="blessingText">加载祝福中...</p>
+      <div class="blessing-progress" id="blessingProgress"></div>
+    </div>
+
+    <!-- 发送框 -->
+    <div class="compose-container glass">
+      <div class="compose-header">
+        <span>✍️ 写下你的新年祝福</span>
+        <span class="char-counter"><span id="charCount">0</span>/200</span>
+      </div>
+      <textarea id="messageInput" placeholder="在这里写下你对新年的美好祝愿..." maxlength="200"></textarea>
+      <div class="compose-footer">
+        <div class="emoji-picker">
+          <button class="emoji-btn" data-emoji="��">🎉</button>
+          <button class="emoji-btn" data-emoji="🐴">🐴</button>
+          <button class="emoji-btn" data-emoji="💰">💰</button>
+          <button class="emoji-btn" data-emoji="❤️">❤️</button>
+          <button class="emoji-btn" data-emoji="🎊">🎊</button>
+        </div>
+        <button class="btn-send" id="sendBtn">
+          <span>发送</span>
+          <span class="send-icon">🚀</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 互动区 -->
+    <div class="action-bar">
+      <button class="action-btn like-btn" id="likeBtn">
+        <span class="btn-icon">❤️</span>
+        <span class="btn-text">点赞</span>
+        <span class="ripple"></span>
+      </button>
+      <div class="gift-buttons">
+        <button class="action-btn gift-btn" data-gift="firework" title="放烟花">
+          <span class="btn-icon">🎆</span>
+          <span class="btn-text">放烟花</span>
+          <span class="ripple"></span>
+        </button>
+        <button class="action-btn gift-btn" data-gift="hongbao" title="发红包">
+          <span class="btn-icon">🧧</span>
+          <span class="btn-text">发红包</span>
+          <span class="ripple"></span>
+        </button>
+        <button class="action-btn gift-btn" data-gift="horse" title="送小马">
+          <span class="btn-icon">🐴</span>
+          <span class="btn-text">送小马</span>
+          <span class="ripple"></span>
+        </button>
+        <button class="action-btn gift-btn" data-gift="spring" title="送春联">
+          <span class="btn-icon">🧨</span>
+          <span class="btn-text">送春联</span>
+          <span class="ripple"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 数据概览和排行榜（合并） -->
+    <section class="info-section">
+      <div class="info-card glass combined-stats">
+        <h3 class="info-title">📊 总数据 & 🏆 活跃排行榜</h3>
+        
+        <!-- 总数据部分 -->
+        <div class="stats-section">
+          <h4 class="section-subtitle">📈 实时数据</h4>
+          <div class="overview-stats">
+            <div class="overview-stat-item">
+              <div class="stat-value" id="ovOnline">0</div>
+              <div class="stat-label">在线用户</div>
+            </div>
+            <div class="overview-stat-item">
+              <div class="stat-value" id="ovTotalUsers">0</div>
+              <div class="stat-label">总用户数</div>
+            </div>
+            <div class="overview-stat-item">
+              <div class="stat-value" id="ovMessages">0</div>
+              <div class="stat-label">总祝福数</div>
+            </div>
+            <div class="overview-stat-item">
+              <div class="stat-value" id="ovReplies">0</div>
+              <div class="stat-label">总回复数</div>
+            </div>
+            <div class="overview-stat-item">
+              <div class="stat-value" id="ovLikes">0</div>
+              <div class="stat-label">总点赞数</div>
+            </div>
+            <div class="overview-stat-item">
+              <div class="stat-value" id="ovGifts">0</div>
+              <div class="stat-label">总礼物数</div>
+            </div>
+            <div class="overview-stat-item">
+              <div class="stat-value" id="ovTodayActive">0</div>
+              <div class="stat-label">今日活跃</div>
+            </div>
+          </div>
+          <div class="industry-stats" id="industryStats"></div>
+        </div>
+
+        <!-- 排行榜部分 -->
+        <div class="leaderboard-section">
+          <h4 class="section-subtitle">🏆 活跃排行榜</h4>
+          <div class="leaderboard-list" id="leaderboardList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 抽奖转盘（放大显示） -->
+    <section class="wheel-section">
+      <div class="wheel-card glass">
+        <h3 class="section-title">🎰 幸运抽祝福</h3>
+        <div class="wheel-container-large">
+          <div class="wheel" id="wheel">
+            <div class="wheel-inner"></div>
+          </div>
+          <div class="wheel-pointer">▼</div>
+        </div>
+        <div class="wheel-result" id="wheelResult" style="display:none">
+          <div class="result-icon">🎊</div>
+          <p class="result-text" id="resultText"></p>
+          <span class="result-rarity" id="resultRarity"></span>
+        </div>
+        <button class="btn-primary btn-glow" id="spinBtn">
+          <span>抽取祝福</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 退出确认区域 -->
+    <section class="logout-section" id="logoutSection" style="display:none">
+      <div class="logout-card glass">
+        <h3 class="section-title">退出确认</h3>
+        <p style="margin-bottom: 1.5rem; text-align: center;">退出前是否生成你的专属明信片？</p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <button class="btn-primary" id="logoutGenerateBtn" style="flex: 1; min-width: 120px;">生成明信片</button>
+          <button class="btn-primary" id="logoutConfirmBtn" style="flex: 1; min-width: 120px; background: rgba(255, 107, 107, 0.3);">直接退出</button>
+          <button class="btn-primary" id="logoutCancelBtn" style="flex: 1; min-width: 120px; background: rgba(255, 255, 255, 0.2);">取消</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 明信片生成区域 -->
+    <section class="postcard-section" id="postcardSection" style="display:none">
+      <div class="postcard-card glass">
+        <h3 class="section-title">🎴 生成专属明信片</h3>
+        <div class="postcard-form">
+          <div class="input-group">
+            <label>写下你想说的话（可选）：</label>
+            <textarea id="postcardMessage" placeholder="在这里写下你想说的话..." maxlength="200" rows="4"></textarea>
+          </div>
+          <button class="btn-primary btn-glow" id="generatePostcardBtn">
+            <span>生成明信片 🎨</span>
+          </button>
+        </div>
+        <div id="postcardPreview" style="display:none; margin-top: 2rem;">
+          <canvas id="postcardCanvas" width="800" height="1200"></canvas>
+          <div class="postcard-actions" style="margin-top: 1rem; text-align: center;">
+            <button class="btn-primary" id="downloadPostcardBtn">📥 下载明信片</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 消息墙 -->
+    <section class="message-wall-section">
+      <div class="section-header">
+        <h2 class="section-title"><span class="title-icon">💬</span> 祝福墙</h2>
+      </div>
+      <!-- 气球浮动视图 -->
+      <div class="message-wall bubble-wall" id="bubbleWall"></div>
+    </section>
+  </div>
+
+  <!-- 抽奖模态框 -->
+  <div class="modal" id="wheelModal" style="display:none">
+    <div class="modal-content glass wheel-modal">
+      <button class="modal-close" onclick="closeModal('wheelModal')">✕</button>
+      <h2 class="modal-title">🎰 幸运抽祝福</h2>
+      <div class="wheel-container">
+        <div class="wheel" id="wheel">
+          <div class="wheel-inner"></div>
+        </div>
+        <div class="wheel-pointer">▼</div>
+      </div>
+      <div class="wheel-result" id="wheelResult" style="display:none">
+        <div class="result-icon">🎊</div>
+        <p class="result-text" id="resultText"></p>
+        <span class="result-rarity" id="resultRarity"></span>
+      </div>
+      <button class="btn-primary btn-glow" id="spinBtn">
+        <span>抽取祝福</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 分享模态框 -->
+  <div class="modal" id="shareModal" style="display:none">
+    <div class="modal-content glass share-modal">
+      <button class="modal-close" onclick="closeModal('shareModal')">✕</button>
+      <h2 class="modal-title">📤 分享给好友</h2>
+      <p class="share-desc">🎉 2026马年祝福墙 - 一起来许愿送祝福吧！</p>
+      <div class="share-text-box">
+        <textarea id="shareText" readonly>🎉 2026马年祝福墙
+✨ 马到成功 · 万事如意 ✨
+欢迎你的加入！一起来许愿送祝福吧！
+网址：</textarea>
+      </div>
+      <div class="share-buttons">
+        <button class="share-btn wechat" onclick="shareToApp('wechat')">
+          <span class="share-icon">💚</span>
+          <span>微信</span>
+        </button>
+        <button class="share-btn qq" onclick="shareToApp('qq')">
+          <span class="share-icon">💙</span>
+          <span>QQ</span>
+        </button>
+        <button class="share-btn copy" onclick="copyShareText()">
+          <span class="share-icon">📋</span>
+          <span>复制</span>
+        </button>
+      </div>
+      <div class="share-success" id="shareSuccess" style="display:none">
+        ✅ 已复制到剪贴板！
+      </div>
+    </div>
+  </div>
+
+  <!-- 排行榜模态框 -->
+  <div class="modal" id="leaderboardModal" style="display:none">
+    <div class="modal-content glass leaderboard-modal">
+      <button class="modal-close" onclick="closeModal('leaderboardModal')">✕</button>
+      <h2 class="modal-title">🏆 活跃排行榜</h2>
+      <div class="leaderboard-list" id="leaderboardList"></div>
+    </div>
+  </div>
+
+  <!-- Overview模态框 -->
+  <div class="modal" id="overviewModal" style="display:none">
+    <div class="modal-content glass overview-modal">
+      <button class="modal-close" onclick="closeModal('overviewModal')">✕</button>
+      <h2 class="modal-title">📊 数据概览</h2>
+      <div class="overview-stats">
+        <div class="overview-stat-item">
+          <div class="stat-value" id="ovOnline">0</div>
+          <div class="stat-label">在线用户</div>
+        </div>
+        <div class="overview-stat-item">
+          <div class="stat-value" id="ovTotalUsers">0</div>
+          <div class="stat-label">总用户数</div>
+        </div>
+        <div class="overview-stat-item">
+          <div class="stat-value" id="ovMessages">0</div>
+          <div class="stat-label">总祝福数</div>
+        </div>
+        <div class="overview-stat-item">
+          <div class="stat-value" id="ovReplies">0</div>
+          <div class="stat-label">总回复数</div>
+        </div>
+        <div class="overview-stat-item">
+          <div class="stat-value" id="ovLikes">0</div>
+          <div class="stat-label">总点赞数</div>
+        </div>
+        <div class="overview-stat-item">
+          <div class="stat-value" id="ovGifts">0</div>
+          <div class="stat-label">总礼物数</div>
+        </div>
+        <div class="overview-stat-item">
+          <div class="stat-value" id="ovTodayActive">0</div>
+          <div class="stat-label">今日活跃</div>
+        </div>
+      </div>
+      <div class="industry-stats" id="industryStats"></div>
+    </div>
+  </div>
+
+  <!-- 背景音乐 - 不同行业不同音乐 -->
+  <audio id="bgMusic" loop preload="auto" style="display:none;"></audio>
+  
+  <!-- 烟花音乐 -->
+  <audio id="fireworksMusic" preload="auto" style="display:none;">
+    <!-- 可以使用任何烟花音效URL，这里使用一个示例 -->
+    <!-- 如果需要，可以替换为本地文件或自定义URL -->
+  </audio>
+  
+  <!-- 烟花画布 -->
+  <canvas id="fireworksCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50000;"></canvas>
+
+  <!-- 明信片生成模态框 -->
+  <div class="modal" id="postcardModal" style="display:none">
+    <div class="modal-content glass postcard-modal">
+      <button class="modal-close" onclick="closeModal('postcardModal')">✕</button>
+      <h2 class="modal-title">🎴 生成专属明信片</h2>
+      <div class="postcard-form">
+        <div class="input-group">
+          <label>写下你想说的话（可选）：</label>
+          <textarea id="postcardMessage" placeholder="在这里写下你想说的话..." maxlength="200" rows="4"></textarea>
+        </div>
+        <button class="btn-primary btn-glow" id="generatePostcardBtn">
+          <span>生成明信片 🎨</span>
+        </button>
+      </div>
+      <div id="postcardPreview" style="display:none; margin-top: 2rem;">
+        <canvas id="postcardCanvas" width="800" height="1200"></canvas>
+        <div class="postcard-actions" style="margin-top: 1rem; text-align: center;">
+          <button class="btn-primary" id="downloadPostcardBtn">📥 下载明信片</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
