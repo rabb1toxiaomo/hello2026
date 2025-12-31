@@ -377,8 +377,8 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 // 速率限制
 app.use(rateLimitMiddleware);
 
-// 静态文件服务
-app.use(express.static('public'));
+// 静态文件服务（使用绝对路径，确保能找到文件）
+app.use(express.static(path.join(__dirname, 'public')));
 
 // 请求日志和安全监控
 app.use((req, res, next) => {

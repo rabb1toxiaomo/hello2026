@@ -6,7 +6,8 @@
 
 server {
     listen 80;
-    server_name 172.16.2.1;  # 或你的域名
+    listen [::]:80;  # IPv6支持
+    server_name 154.8.235.129;  # 你的公网IP，如果有域名可以替换
 
     # HTTP配置（无需SSL证书）
     location / {

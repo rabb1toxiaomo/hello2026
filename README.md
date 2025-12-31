@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# hello2026
-=======
 # 🐴 2026 马年祝福留言墙
 
 <div align="center">
@@ -34,7 +31,7 @@
 - **炫酷动画** - 粒子系统、鼠标跟随、3D卡片、霓虹灯、彩虹文字等
 
 ### 💬 留言功能
-- **双模式留言墙** - 气泡模式和星空模式并行显示
+- **双模式留言墙** - 弹幕墙模式和气泡模式可切换
 - **实时互动** - 点赞、送礼物（🎆烟花 🧧红包 🐴小马 🧨春联）
 - **回复功能** - 可以回复别人的祝福
 - **管理功能** - 用户可以编辑/删除自己的祝福
@@ -90,7 +87,7 @@
 
 1. **克隆项目**
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/rabb1toxiaomo/hello2026.git
 cd hello2026
 ```
 
@@ -140,6 +137,7 @@ docker-compose up -d
 - **抽奖** 🎰 - 点击抽奖按钮获取随机祝福（行业相关）
 - **排行榜** 🏆 - 查看最活跃的用户
 - **数据概览** 📊 - 查看完整的统计数据
+- **切换模式** 📋 - 顶部导航栏可切换弹幕墙/气泡模式
 
 ### 管理祝福
 - 可以编辑自己的祝福
@@ -167,7 +165,7 @@ docker-compose up -d
 - **HTML5** - 语义化标签
 
 ### 部署
-- **PM2** - 进程管理
+- **PM2** - 进程管理（已配置定时重启：每3小时）
 - **Docker** - 容器化部署
 - **Nginx** - 反向代理（可选）
 
@@ -187,6 +185,7 @@ hello2026/
 ├── .gitignore            # Git忽略文件
 ├── LICENSE                # MIT许可证
 ├── README.md              # 项目说明
+├── GITHUB.md              # GitHub部署指南
 ├── CHANGELOG.md           # 版本历史
 ├── wishes.db             # SQLite 数据库文件（自动生成）
 └── public/               # 前端静态文件
@@ -223,66 +222,26 @@ ADMIN_PASSWORD=admin
 
 ## 🚀 部署指南
 
-### 方式一：使用 PM2（推荐）
+详细的部署说明请查看：
+- [GITHUB.md](GITHUB.md) - GitHub 部署指南
+- [DEPLOY.md](DEPLOY.md) - 详细部署文档
 
-1. **上传项目到服务器**
-```bash
-scp -r . user@your-server:/path/to/app
-```
+### 快速部署（从 GitHub）
 
-2. **SSH登录服务器**
 ```bash
-ssh user@your-server
-cd /path/to/app
-```
+# 克隆项目
+git clone https://github.com/rabb1toxiaomo/hello2026.git
+cd hello2026
 
-3. **安装依赖**
-```bash
+# 安装依赖
 npm install --production
-```
 
-4. **运行部署脚本**
-```bash
-chmod +x deploy.sh
-./deploy.sh
-```
+# 使用 PM2 启动
+npm run pm2:start
 
-5. **配置 Nginx 反向代理（可选）**
-```bash
-# 复制nginx配置
-sudo cp nginx.conf.example /etc/nginx/sites-available/your-domain
-
-# 编辑配置，修改域名
-sudo nano /etc/nginx/sites-available/your-domain
-
-# 创建软链接
-sudo ln -s /etc/nginx/sites-available/your-domain /etc/nginx/sites-enabled/
-
-# 测试配置
-sudo nginx -t
-
-# 重启Nginx
-sudo systemctl restart nginx
-```
-
-6. **配置 SSL 证书（推荐）**
-```bash
-# 使用Let's Encrypt
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
-```
-
-### 方式二：使用 Docker
-
-1. **在服务器上安装 Docker 和 Docker Compose**
-
-2. **上传项目文件**
-
-3. **运行**
-```bash
+# 或使用 Docker
 docker-compose up -d
 ```
-
-4. **配置 Nginx（同上）**
 
 ---
 
@@ -346,4 +305,3 @@ docker-compose up -d
 Made with ❤️ by @xiaomo
 
 </div>
->>>>>>> fe82057 (Initial project commit)

@@ -176,6 +176,10 @@
         <span class="online-badge"><span class="pulse-dot"></span>在线</span>
       </div>
       <div class="nav-right">
+        <button class="nav-btn view-mode-toggle" id="viewModeBtn" title="切换留言显示模式">
+          <span class="view-mode-icon" id="viewModeIcon">📋</span>
+          <span class="view-mode-text" id="viewModeText">弹幕墙</span>
+        </button>
         <button class="nav-btn" id="logoutBtn" title="退出">🚪</button>
       </div>
     </nav>
@@ -423,6 +427,8 @@
       <div class="section-header">
         <h2 class="section-title"><span class="title-icon">💬</span> 祝福墙</h2>
       </div>
+      <!-- 弹幕墙列表视图 -->
+      <div class="message-wall list-wall glass" id="listWall" style="display:none;"></div>
       <!-- 气球浮动视图 -->
       <div class="message-wall bubble-wall" id="bubbleWall"></div>
     </section>

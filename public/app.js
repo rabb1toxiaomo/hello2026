@@ -18,6 +18,8 @@ let blessingInterval = null;
 let danmakuInterval = null;
 let countdownInterval = null;
 let musicPlaying = false;
+// 从localStorage读取保存的视图模式，默认为弹幕墙模式
+let viewMode = localStorage.getItem('viewMode') || 'list'; // 'bubble' 或 'list'
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -30,6 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
   startDanmaku();
   startStatsUpdate();
   initHorseFollower();
+  // 初始化视图模式按钮（如果主页面已经显示）
+  setTimeout(() => {
+    updateViewModeButton();
+    updateViewModeDisplay();
+  }, 100);
 });
 
 // 检查认证状态
@@ -239,13 +246,26 @@ async function loadMessages() {
   }
 }
 
-// 显示消息 - 气球全局飘动模式
+// 显示消息 - 根据模式显示
 function displayMessages(messages) {
+  if (viewMode === 'bubble') {
+    displayBubbleMessages(messages);
+  } else {
+    displayListMessages(messages);
+  }
+}
+
+// 显示气泡模式消息
+function displayBubbleMessages(messages) {
   const bubbleWall = document.getElementById('bubbleWall');
+  const listWall = document.getElementById('listWall');
   
-  // 清空
-  bubbleWall.innerHTML = '';
-  bubbleWall.style.display = 'block';
+  // 隐藏列表视图，显示气泡视图
+  if (listWall) listWall.style.display = 'none';
+  if (bubbleWall) {
+    bubbleWall.innerHTML = '';
+    bubbleWall.style.display = 'block';
+  }
   
   messages.forEach((msg, index) => {
     const time = new Date(msg.created_at).toLocaleString('zh-CN', {
@@ -258,13 +278,43 @@ function displayMessages(messages) {
     // 创建气球消息（延迟创建，避免同时出现太多）
     setTimeout(() => {
       const bubbleEl = createBubbleMessage(msg, time, index);
-      bubbleWall.appendChild(bubbleEl);
+      if (bubbleWall) bubbleWall.appendChild(bubbleEl);
       
       // 添加进入动画
       setTimeout(() => {
         bubbleEl.classList.add('animate-in');
       }, 50);
     }, index * 100); // 每个气泡延迟100ms创建
+  });
+}
+
+// 显示列表模式消息（弹幕墙）
+function displayListMessages(messages) {
+  const bubbleWall = document.getElementById('bubbleWall');
+  const listWall = document.getElementById('listWall');
+  
+  // 隐藏气泡视图，显示列表视图
+  if (bubbleWall) bubbleWall.style.display = 'none';
+  if (listWall) {
+    listWall.innerHTML = '';
+    listWall.style.display = 'block';
+  }
+  
+  messages.forEach((msg, index) => {
+    const time = new Date(msg.created_at).toLocaleString('zh-CN', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
+    const listEl = createListMessage(msg, time, index);
+    if (listWall) listWall.appendChild(listEl);
+    
+    // 添加进入动画
+    setTimeout(() => {
+      listEl.classList.add('animate-in');
+    }, index * 50);
   });
 }
 
@@ -330,6 +380,39 @@ function createBubbleMessage(msg, time, index) {
   
   // 强制应用动画，确保动画能正常工作
   msgEl.style.animation = `balloonFloatGlobal ${randomDuration}s ease-in-out ${randomDelay}s infinite`;
+  
+  const isOwn = currentUser && msg.user_id === currentUser.userId;
+  
+  msgEl.innerHTML = `
+    <div class="message-header">
+      <span class="message-author">${escapeHtml(msg.nickname)}</span>
+      <span class="message-time">${time}</span>
+      ${isOwn ? `<button class="msg-action-btn" onclick="editMessage(${msg.id})" title="编辑">✏️</button>
+                  <button class="msg-action-btn" onclick="deleteMessage(${msg.id})" title="删除">🗑️</button>` : ''}
+    </div>
+    <div class="message-content">${escapeHtml(msg.content)}</div>
+    ${msg.replies && msg.replies.length > 0 ? `
+      <div class="replies-container">
+        ${msg.replies.map(reply => `
+          <div class="reply-item">
+            <span class="reply-author">${escapeHtml(reply.nickname)}</span>
+            <span class="reply-content">${escapeHtml(reply.content)}</span>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+    <button class="reply-btn" onclick="showReplyForm(${msg.id})">💬 回复</button>
+  `;
+  
+  return msgEl;
+}
+
+// 创建列表模式消息
+function createListMessage(msg, time, index) {
+  const msgEl = document.createElement('div');
+  msgEl.className = 'message-item list';
+  msgEl.dataset.id = msg.id;
+  msgEl.dataset.userId = msg.user_id;
   
   const isOwn = currentUser && msg.user_id === currentUser.userId;
   
@@ -429,6 +512,49 @@ function updateCharCount() {
   count.textContent = input.value.length;
 }
 
+// 切换视图模式
+function toggleViewMode() {
+  viewMode = viewMode === 'bubble' ? 'list' : 'bubble';
+  // 保存到localStorage
+  localStorage.setItem('viewMode', viewMode);
+  updateViewModeButton();
+  updateViewModeDisplay();
+  // 重新加载消息以应用新模式
+  loadMessages();
+  showToast(viewMode === 'bubble' ? '已切换到气泡模式' : '已切换到弹幕墙模式', 'success');
+}
+
+// 更新视图模式显示（控制标题显示/隐藏）
+function updateViewModeDisplay() {
+  const sectionHeader = document.querySelector('.message-wall-section .section-header');
+  if (sectionHeader) {
+    sectionHeader.style.display = viewMode === 'list' ? 'block' : 'none';
+  }
+}
+
+// 更新视图模式按钮图标和文字
+function updateViewModeButton() {
+  const iconEl = document.getElementById('viewModeIcon');
+  const textEl = document.getElementById('viewModeText');
+  const btn = document.getElementById('viewModeBtn');
+  
+  if (iconEl && textEl) {
+    if (viewMode === 'bubble') {
+      iconEl.textContent = '💬';
+      textEl.textContent = '气泡';
+      if (btn) btn.title = '切换到弹幕墙模式';
+    } else {
+      iconEl.textContent = '📋';
+      textEl.textContent = '弹幕墙';
+      if (btn) btn.title = '切换到气泡模式';
+    }
+  } else if (btn) {
+    // 兼容旧版本（如果没有图标和文字元素）
+    btn.textContent = viewMode === 'bubble' ? '💬 气泡' : '📋 弹幕墙';
+    btn.title = viewMode === 'bubble' ? '切换到弹幕墙模式' : '切换到气泡模式';
+  }
+}
+
 // 初始化事件监听
 function initEventListeners() {
   // 发送按钮
@@ -445,8 +571,12 @@ function initEventListeners() {
   // 字符计数
   document.getElementById('messageInput').addEventListener('input', updateCharCount);
   
-  // 视图切换
-  // 视图切换已移除，只使用气球浮动模式
+  // 视图模式切换
+  const viewModeBtn = document.getElementById('viewModeBtn');
+  if (viewModeBtn) {
+    viewModeBtn.addEventListener('click', toggleViewMode);
+    updateViewModeButton();
+  }
   
   // 点赞
   document.getElementById('likeBtn').addEventListener('click', async () => {
@@ -1704,6 +1834,9 @@ function showMainPage() {
   initCountdown();
   // 确保马特效在主页面显示时重新初始化
   initHorseFollower();
+  // 初始化视图模式按钮
+  updateViewModeButton();
+  updateViewModeDisplay();
   loadMessages();
   // 立即更新顶部统计卡片
   updateTopStats();
